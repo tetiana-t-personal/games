@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quiz Mario Game</title>
+
+<style>
+  #game-wrap {
+    position: relative;
+    width: 100%;
+    height: 650px;
+    background: #5c94fc;
+    overflow: hidden;
+    font-family: 'Press Start 2P', monospace;
+    border-radius: 8px;
+  }
+
+  #ground {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: #5d3a1a;
+    border-top: 8px solid #3d8a3d;
+  }
+
+  #mario {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    bottom: 68px;
+    left: 200px;
+    pointer-events: none;
+    z-index: 10;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .cloud {
+    position: absolute;
+    background: white;
+    border-radius: 20px;
+    opacity: 0.85;
+  }
+
+  .obj {
+    position: absolute;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    z-index: 5;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  }
+
+  /* tooltip label under each object */
+  .obj-label {
+    position: absolute;
+    bottom: -18px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 7px;
+    color: #fff;
+    white-space: nowrap;
+    text-shadow: 1px 1px 0 #000;
+    pointer-events: none;
+  }
+
+  #hud {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+    display: flex;
+    justify-content: space-between;
+    z-index: 20;
+  }
+
+  #lives-area { display: flex; gap: 4px; font-size: 18px; }
+  #score-area { font-size: 10px; color: white; text-shadow: 1px 1px 0 #000; }
+
+  #quiz-panel {
+    display: none;
+    position: absolute;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #fffbe6;
+    border: 6px solid #c0a000;
+    border-radius: 14px;
+    padding: 28px;
+    z-index: 30;
+    width: 95%;
+    max-width: 850px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+  }
+
+  #quiz-q {
+    font-size: 18px;
+    line-height: 1.6;
+    margin-bottom: 20px;
+    color: #333;
+  }
+
+  .quiz-btn {
+    display: block;
+    width: 100%;
+    margin: 10px 0;
+    padding: 14px;
+    font-size: 16px;
+    font-family: inherit;
+    background: #4a90d9;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .quiz-btn:hover { background: #2e6fb5; }
+
+  #gameover, #win {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 50;
+    gap: 12px;
+  }
+
+  #gameover { background: rgba(0,0,0,0.8); }
+  #win      { background: rgba(0,80,0,0.85); }
+
+  #gameover p, #win p {
+    color: white;
+    font-size: 11px;
+    text-align: center;
+    line-height: 2;
+  }
+
+  #gameover button, #win button {
+    font-family: inherit;
+    font-size: 10px;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  #gameover button { background: #e74c3c; color: white; }
+  #win button      { background: #27ae60; color: white; }
+
+  /* FEEDBACK OVERLAY */
+  #feedback {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 90px;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+  }
+  #feedback.show { opacity: 1; }
+
+  /* legend */
+  #legend {
+    position: absolute;
+    bottom: 68px;
+    right: 8px;
+    z-index: 20;
+    background: rgba(0,0,0,0.45);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 9px;
+    color: #fff;
+    text-shadow: 1px 1px 0 #000;
+    line-height: 2;
+  }
+</style>
+
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+
+<body style="margin:0;padding:0;background:#222;">
+
+<div id="game-wrap">
+
+  <div id="hud">
+    <div id="lives-area"></div>
+    <div id="score-area">COINS: <span id="coin-count">0</span>/<span id="coin-max"></span></div>
+  </div>
+
+  <!-- legend -->
+  <div id="legend">
+    💰 question → +coin<br>
+    🍄 +❤️<br>
+    ❤️ +❤️<br>
+    🟤 −❤️
+  </div>
+
+  <div class="cloud" style="width:80px;height:30px;top:60px;left:10%"></div>
+  <div class="cloud" style="width:60px;height:22px;top:90px;left:55%"></div>
+  <div class="cloud" style="width:100px;height:35px;top:40px;left:75%"></div>
+
+  <div id="mario">👲🏻</div>
+  <div id="ground"></div>
+
+  <div id="feedback">😢</div>
+
+  <div id="quiz-panel">
+    <div id="quiz-q"></div>
+    <div id="quiz-opts"></div>
+  </div>
+
+  <div id="gameover">
+    <p>💀 GAME OVER 💀<br>Coins: <span id="go-score"></span></p>
+    <button onclick="location.reload()">Try Again</button>
+  </div>
+
+  <div id="win">
+    <p>🏆 YOU WIN! 🏆<br>Coins: <span id="win-score"></span></p>
+    <button onclick="location.reload()">Play Again</button>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  { q: "Good leaders ____ employees make small decisions on their own.", opts: ["let","make","dare"], ans: 0 },
+  { q: "Strict rules often ____ employees feel less trusted.", opts: ["let","make","dare"], ans: 1 },
+  { q: "Employees are sometimes ____ to use outdated systems.", opts: ["let","made","dare"], ans: 1 },
+  { q: "Good companies ____ people experiment with new approaches.", opts: ["make","let","dare"], ans: 1 },
+  { q: "Employees are often ____ to report every small change to their supervisor.", opts: ["made","let","dare"], ans: 0 },
+  { q: "Innovative leaders ____ to challenge strict corporate rules when they no longer work.", opts: ["let","make","dare"], ans: 2 },
+  { q: "In forward-thinking organisations, managers ____ to rethink strict hierarchies.", opts: ["let","dare","make"], ans: 1 },
+  { q: "Some managers ____ to remove unnecessary reporting structures.", opts: ["dare","let","make"], ans: 0 },
+  { q: "Confident employees ____ to speak up when rules slow down productivity.", opts: ["make","let","dare"], ans: 2 },
+  { q: "In progressive companies, workers ____ to experiment with new methods.", opts: ["dare","make","let"], ans: 0 },
+  { q: "Strong professionals ____ to take initiative without waiting for approval.", opts: ["let","dare","make"], ans: 1 },
+  { q: "Employees ____ to ask for more autonomy in their tasks.", opts: ["let","make","dare"], ans: 2 }
+];
+
+/* ── state ── */
+let lives = 3, coins = 0;
+let marioX = 200;
+let objects = [];
+let gameActive = true;
+let quizActive = false;
+let pendingObj = null;
+let selectedAnswer = 0;
+let currentButtons = [];
+let correctSet = new Set();
+let currentQuestion = null;
+
+/* ── elements ── */
+const wrap      = document.getElementById('game-wrap');
+const marioEl   = document.getElementById('mario');
+const coinCount = document.getElementById('coin-count');
+
+/* ── emoji map ── */
+const emojis = { coin:'💰', mushroom:'🍄', heart:'❤️', brown:'🟤' };
+
+/* ── helpers ── */
+function updateMario() { marioEl.style.left = marioX + 'px'; }
+
+function updateHUD() {
+  const area = document.getElementById('lives-area');
+  area.innerHTML = '';
+  for (let i = 0; i < lives; i++) area.innerHTML += '❤️';
+  coinCount.textContent = coins;
+}
+
+function showFeedback(symbol) {
+  const fb = document.getElementById('feedback');
+  fb.textContent = symbol;
+  fb.classList.add('show');
+  setTimeout(() => fb.classList.remove('show'), 500);
+}
+
+/* ── keyboard ── */
+document.addEventListener('keydown', (e) => {
+  const step = 15;
+  const maxX = wrap.offsetWidth - 36;
+
+  if (!quizActive) {
+    if (e.key === 'ArrowLeft')  { marioX = Math.max(0, marioX - step);    updateMario(); }
+    if (e.key === 'ArrowRight') { marioX = Math.min(maxX, marioX + step); updateMario(); }
+    return;
+  }
+
+  if (e.key === 'ArrowUp')   { selectedAnswer = Math.max(0, selectedAnswer - 1); updateSelection(); }
+  if (e.key === 'ArrowDown') { selectedAnswer = Math.min(currentButtons.length - 1, selectedAnswer + 1); updateSelection(); }
+  if (e.key === 'Enter')     { currentButtons[selectedAnswer].click(); }
+});
+
+function updateSelection() {
+  currentButtons.forEach((btn, i) => {
+    btn.style.outline = i === selectedAnswer ? '4px solid #c0a000' : 'none';
+  });
+}
+
+/* ── question pool ── */
+function getNextQuestion() {
+  const pool = questions.filter(q => !correctSet.has(q));
+  if (!pool.length) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/* ── spawn ── */
+function spawnObject() {
+  if (!gameActive || quizActive) return;
+
+  // weighted pool: coins frequent, bonus items rarer
+  const types = ['coin','coin','coin','coin','mushroom','heart','brown'];
+  const type  = types[Math.floor(Math.random() * types.length)];
+
+  const el = document.createElement('div');
+  el.className = 'obj';
+  el.textContent = emojis[type];
+  el.dataset.type = type;
+
+  const x = Math.random() * (wrap.offsetWidth - 40);
+  el.style.left = x + 'px';
+  el.style.top  = '-40px';
+  wrap.appendChild(el);
+
+  objects.push({ el, x, y: -40, speed: 1.8 + Math.random() * 1.2, type });
+}
+
+/* ── collision ── */
+function checkCollision(obj) {
+  const my = wrap.offsetHeight - 68 - 36;
+  return Math.abs(marioX - obj.x) < 35 && Math.abs(my - obj.y) < 35;
+}
+
+/* ── quiz ── */
+function showQuiz(obj) {
+  quizActive  = true;
+  pendingObj  = obj;
+
+  const q = getNextQuestion();
+  if (!q) { endGame(true); return; }
+  currentQuestion = q;
+
+  const panel = document.getElementById('quiz-panel');
+  document.getElementById('quiz-q').textContent = q.q;
+  const opts = document.getElementById('quiz-opts');
+  opts.innerHTML = '';
+  selectedAnswer = 0;
+  currentButtons = [];
+
+  q.opts.forEach((o, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-btn';
+    btn.textContent = o;
+    btn.onclick = () => finishAnswer(i === q.ans);
+    opts.appendChild(btn);
+    currentButtons.push(btn);
+  });
+
+  panel.style.display = 'block';
+  updateSelection();
+}
+
+function finishAnswer(correct) {
+  quizActive = false;
+  document.getElementById('quiz-panel').style.display = 'none';
+
+  if (correct) {
+    coins++;
+    correctSet.add(currentQuestion);
+    showFeedback('🙂');
+  } else {
+    lives--;
+    showFeedback('😢');
+  }
+
+  updateHUD();
+
+  if (pendingObj) {
+    pendingObj.el.remove();
+    objects = objects.filter(o => o !== pendingObj);
+    pendingObj = null;
+  }
+
+  if (correctSet.size === questions.length) endGame(true);
+  if (lives <= 0) endGame(false);
+}
+
+/* ── end ── */
+function endGame(win) {
+  gameActive = false;
+  if (win) {
+    document.getElementById('win-score').textContent  = coins;
+    document.getElementById('win').style.display      = 'flex';
+  } else {
+    document.getElementById('go-score').textContent   = coins;
+    document.getElementById('gameover').style.display = 'flex';
+  }
+}
+
+/* ── main loop ── */
+function loop() {
+  if (!gameActive) return;
+
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const obj = objects[i];
+    obj.y += obj.speed;
+    obj.el.style.top = obj.y + 'px';
+
+    // fell off screen
+    if (obj.y > wrap.offsetHeight) {
+      obj.el.remove();
+      objects.splice(i, 1);
+      continue;
+    }
+
+    // collision
+    if (!quizActive && checkCollision(obj)) {
+
+      if (obj.type === 'coin') {
+        // trigger quiz; coin removed after answer
+        showQuiz(obj);
+        continue;
+      }
+
+      // instant-collect items
+      obj.el.remove();
+      objects.splice(i, 1);
+
+      if (obj.type === 'mushroom' || obj.type === 'heart') {
+        lives = Math.min(lives + 1, 5);
+        showFeedback('💚');
+      } else if (obj.type === 'brown') {
+        lives--;
+        showFeedback('💥');
+        if (lives <= 0) { updateHUD(); endGame(false); return; }
+      }
+
+      updateHUD();
+    }
+  }
+
+  requestAnimationFrame(loop);
+}
+
+/* ── init ── */
+document.getElementById('coin-max').textContent = questions.length;
+updateHUD();
+updateMario();
+setInterval(spawnObject, 1300);
+loop();
+</script>
+
+</body>
+</html>
