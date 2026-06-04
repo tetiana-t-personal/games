@@ -442,6 +442,11 @@ function endGame(win) {
     document.getElementById('go-score').textContent   = coins;
     document.getElementById('gameover').style.display = 'flex';
   }
+  document.addEventListener('keydown', function endKey(e) {
+    if (e.key === 'Enter') {
+      location.reload();
+    }
+  });
 }
 
 /* ── main loop ── */
