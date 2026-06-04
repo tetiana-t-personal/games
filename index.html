@@ -306,6 +306,61 @@ const coinCount = document.getElementById('coin-count');
 /* ── emoji map ── */
 const emojis = { coin:'💰', mushroom:'🍄', heart:'❤️', brown:'🟤' };
 
+/* ── audio ── */
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+
+function resumeAC() {
+  if (AC.state === 'suspended') AC.resume();
+  startBGM();
+  document.removeEventListener('keydown', resumeAC);
+  document.removeEventListener('click', resumeAC);
+}
+document.addEventListener('keydown', resumeAC);
+document.addEventListener('click', resumeAC);
+
+function note(freq, startTime, duration, vol) {
+  const o = AC.createOscillator();
+  const g = AC.createGain();
+  o.connect(g); g.connect(AC.destination);
+  o.type = 'square';
+  o.frequency.setValueAtTime(freq, startTime);
+  g.gain.setValueAtTime(vol, startTime);
+  g.gain.linearRampToValueAtTime(0, startTime + duration * 0.9);
+  o.start(startTime);
+  o.stop(startTime + duration);
+}
+
+const BGM_TEMPO = 0.18;
+const BGM = [
+  [659,1],[659,1],[0,1],[659,1],[0,1],[523,1],[659,1],[0,1],[784,2],[0,2],[392,2],[0,2],
+  [523,2],[0,1],[392,2],[0,1],[330,2],[0,1],[440,1],[494,1],[466,1],[440,1],[0,1],
+  [392,1],[659,1],[784,1],[880,1],[0,1],[698,1],[784,1],[0,1],[659,2],[0,1],
+  [523,1],[587,1],[494,2],[0,2],
+  [523,2],[0,1],[392,2],[0,1],[330,2],[0,1],[440,1],[494,1],[466,1],[440,1],[0,1],
+  [392,1],[659,1],[784,1],[880,1],[0,1],[698,1],[784,1],[0,1],[659,2],[0,1],
+  [523,1],[587,1],[494,2],[0,2]
+];
+
+let bgmActive = false;
+
+function startBGM() {
+  if (bgmActive) return;
+  bgmActive = true;
+  scheduleBGM(AC.currentTime);
+}
+
+function scheduleBGM(startAt) {
+  if (!bgmActive) return;
+  let t = startAt;
+  BGM.forEach(([freq, beats]) => {
+    if (freq > 0) note(freq, t, beats * BGM_TEMPO, 0.04);
+    t += beats * BGM_TEMPO;
+  });
+  setTimeout(() => scheduleBGM(AC.currentTime + 0.05), (t - AC.currentTime - 0.1) * 1000);
+}
+
+function stopBGM() { bgmActive = false; }
+
 /* ── helpers ── */
 function updateMario() { marioEl.style.left = marioX + 'px'; }
 
@@ -470,12 +525,10 @@ function loop() {
     if (!quizActive && checkCollision(obj)) {
 
       if (obj.type === 'coin') {
-        // trigger quiz; coin removed after answer
         showQuiz(obj);
         continue;
       }
 
-      // instant-collect items
       obj.el.remove();
       objects.splice(i, 1);
 
