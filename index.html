@@ -215,6 +215,43 @@
 
   <div id="feedback">😢</div>
 
+  <!-- START SCREEN -->
+  <div id="start-screen" style="
+    position:absolute;inset:0;background:rgba(0,0,0,0.82);
+    display:flex;align-items:center;justify-content:center;
+    flex-direction:column;z-index:200;
+  ">
+    <div style="
+      background:#fffbe6;border:6px solid #c0a000;border-radius:16px;
+      padding:32px 36px;max-width:480px;width:90%;text-align:left;
+    ">
+      <div style="font-size:13px;color:#333;text-align:center;margin-bottom:24px;letter-spacing:1px;">
+        📋 HOW TO PLAY
+      </div>
+
+      <div style="font-size:11px;color:#444;line-height:2.6;margin-bottom:20px;">
+        <div>⬅️ ➡️ &nbsp;&nbsp; move the player</div>
+        <div>⬆️ ⬇️ &nbsp;&nbsp; choose an answer</div>
+        <div>↩️ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; confirm answer</div>
+      </div>
+
+      <div style="font-size:11px;color:#444;line-height:2.8;border-top:3px solid #e0c800;padding-top:16px;margin-bottom:24px;">
+        <div>💰 &nbsp;catch → answer → correct = +coin</div>
+        <div>🍄 &nbsp;catch → +❤️</div>
+        <div>❤️ &nbsp;catch → +❤️</div>
+        <div>🟤 &nbsp;catch → −❤️</div>
+      </div>
+
+      <div style="text-align:center;">
+        <button onclick="document.getElementById('start-screen').style.display='none'" style="
+          font-family:'Press Start 2P',monospace;font-size:11px;
+          background:#27ae60;color:white;border:none;border-radius:8px;
+          padding:14px 28px;cursor:pointer;letter-spacing:1px;
+        ">▶ START</button>
+      </div>
+    </div>
+  </div>
+
   <div id="quiz-panel">
     <div id="quiz-q"></div>
     <div id="quiz-opts"></div>
@@ -451,6 +488,18 @@ function loop() {
 
   requestAnimationFrame(loop);
 }
+
+/* ── start screen ── */
+document.addEventListener('keydown', function startKey(e) {
+  if (e.key === 'Enter') {
+    const screen = document.getElementById('start-screen');
+    if (screen.style.display !== 'none') {
+      screen.style.display = 'none';
+      e.stopImmediatePropagation();
+    }
+    document.removeEventListener('keydown', startKey);
+  }
+}, true);
 
 /* ── init ── */
 document.getElementById('coin-max').textContent = questions.length;
